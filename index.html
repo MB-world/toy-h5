@@ -93,6 +93,7 @@
             switchScene('scene-choice', 'scene-3d');
         }
 
+        // 這是最原始、最安全的影片切換指令
         function triggerOutro() {
             outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
             switchScene('scene-3d', 'scene-outro');
@@ -103,6 +104,7 @@
             switchScene('scene-outro', 'scene-choice');
         };
 
+        // 這是你說可以返回重新選擇的按鈕邏輯
         function goBackToChoice() {
             viewer.src = ''; 
             switchScene('scene-3d', 'scene-choice');
