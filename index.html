@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極簡 3D 玩具概念展廳</title>
-    <!-- 沿用完全可以成功顯示 3D 的核心版本 -->
+    <!-- 100% 沿用你完全可以成功顯示 3D 的核心版本與代碼結構 -->
     <script type="module" src="https://googleapis.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -13,7 +13,7 @@
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; z-index: 10; }
         video { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 歡迎封面 */
+        /* 歡迎封面 (100% 繞過手機安全限制) */
         #scene-welcome { background: #000; z-index: 100; }
         .start-title { font-size: 20px; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-align: center; }
         .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
@@ -26,20 +26,10 @@
         
         /* 🕹️ 3D 互動頁 */
         #scene-3d { background: #0a0a0a; }
-        
-        /* 3D 播放器的容器，平時空無一物 */
-        #viewer-container { width: 100%; height: 68%; background: #0a0a0a; }
-        model-viewer { width: 100%; height: 100%; display: block; }
-        
-        .control-panel { width: 100%; height: 32%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-        
-        /* 手動玩具動態開關按鈕 */
-        .toy-anim-btn { width: 70%; padding: 12px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 15px; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
-        .toy-anim-btn.playing { background: #00ff88; color: #000; border-color: #00ff88; font-weight: bold; }
-        
-        /* 結局大片按鈕 */
-        .switch-btn { width: 70%; padding: 15px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
-        .back-btn { font-size: 14px; color: #888; cursor: pointer; margin-top: 5px; }
+        model-viewer { width: 100%; height: 75%; }
+        .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
+        .back-btn { font-size: 14px; color: #888; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -47,15 +37,11 @@
     <!-- 🌟 第一階段：點擊進入封面 -->
     <div id="scene-welcome" class="scene active">
         <h2 class="start-title">歡迎來到守護獸展廳</h2>
-        <button class="start-btn" onclick="startExperience()">點擊開啟故事</button>
+        <!-- 點擊直接跳過影片，確保 100% 能進入 3D -->
+        <button class="start-btn" onclick="startExperience()">點擊開啟體驗</button>
     </div>
 
-    <!-- ⏳ 第二階段：前導故事影片 -->
-    <div id="scene-intro" class="scene">
-        <video id="intro-video" src="intro.mp4" playsinline muted></video>
-    </div>
-
-    <!-- 🧭 第三階段：命運抉擇頁 -->
+    <!-- 🧭 第二階段：命運抉擇頁 -->
     <div id="scene-choice" class="scene">
         <h1 class="choice-title">請選擇你的守護獸</h1>
         <div class="btn-group">
@@ -64,98 +50,49 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第四階段：3D 旋轉互動 -->
+    <!-- 🕹️ 第三階段：3D 旋轉互動 (完全還原能動的 auto-play 版本) -->
     <div id="scene-3d" class="scene">
-        <!-- 💡 核心修改：平時這裡空無一物，不佔用任何手機 3D 資源 -->
-        <div id="viewer-container"></div>
-        
+        <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
-            <button id="anim-toggle-btn" class="toy-anim-btn" onclick="toggleToyAnimation()">檢查玩具運作動態：關閉中</button>
-            <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
+            <button class="switch-btn" onclick="triggerOutro()">啟動產品動態與結局</button>
             <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
         </div>
     </div>
 
-    <!-- 🎬 第五階段：結局特效影片 -->
+    <!-- 🎬 第四階段：結局特效影片 -->
     <div id="scene-outro" class="scene">
         <video id="outro-video" src="" playsinline muted></video>
     </div>
 
     <script>
-        const introVid = document.getElementById('intro-video');
         const outroVid = document.getElementById('outro-video');
-        const container = document.getElementById('viewer-container');
-        const animBtn = document.getElementById('anim-toggle-btn');
+        const viewer = document.getElementById('toy-viewer');
         let currentSelection = ''; 
-        let isToyMoving = false; 
 
+        // 點擊直接進到二選一抉擇頁
         function startExperience() {
-            switchScene('scene-welcome', 'scene-intro');
-            introVid.play();
+            switchScene('scene-welcome', 'scene-choice');
         }
 
-        introVid.onended = function() { switchScene('scene-intro', 'scene-choice'); };
-        introVid.onclick = function() { introVid.pause(); switchScene('scene-intro', 'scene-choice'); };
-
-        // 💡 核心優化：進到這一步，才當場當場生成 3D 組件，徹底繞過手機安全拦截
+        // 100% 複製你成功的模型載入代碼
         function enter3D(type) {
             currentSelection = type;
-            
-            // 1. 先把容器清空
-            container.innerHTML = '';
-            
-            // 2. 用程式碼動態創造一個全新的 3D 播放器
-            const viewer = document.createElement('model-viewer');
-            viewer.id = 'toy-viewer';
-            viewer.setAttribute('camera-controls', '');
-            viewer.setAttribute('interpolation-decay', '200');
-            viewer.setAttribute('shadow-intensity', '1');
             viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
-            
-            // 3. 把播放器塞進網頁
-            container.appendChild(viewer);
-            
-            isToyMoving = false;
-            animBtn.innerText = "檢查玩具運作動態：關閉中";
-            animBtn.classList.remove('playing');
-            
             switchScene('scene-choice', 'scene-3d');
         }
 
-        function toggleToyAnimation() {
-            const viewer = document.getElementById('toy-viewer');
-            if (!viewer) return;
-            
-            if (!isToyMoving) {
-                viewer.play(); 
-                animBtn.innerText = "檢查玩具運作動態：運作中 🟢";
-                animBtn.classList.add('playing');
-                isToyMoving = true;
-            } else {
-                viewer.pause(); 
-                animBtn.innerText = "檢查玩具運放動態：關閉中";
-                animBtn.classList.remove('playing');
-                isToyMoving = false;
-            }
-        }
-
         function triggerOutro() {
-            // 離開 3D 頁面時，直接把 3D 播放器從網頁上徹底拔掉，釋放 100% 手機資源給結局影片
-            container.innerHTML = ''; 
-            
             outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
             switchScene('scene-3d', 'scene-outro');
             outroVid.play();
         }
 
-        outroVid.onended = function() { 
-            outroVid.pause();
-            outroVid.src = ""; 
-            switchScene('scene-outro', 'scene-choice'); 
+        outroVid.onended = function() {
+            switchScene('scene-outro', 'scene-choice');
         };
 
         function goBackToChoice() {
-            container.innerHTML = ''; // 清空 3D 釋放手機記憶體
+            viewer.src = ''; 
             switchScene('scene-3d', 'scene-choice');
         }
 
