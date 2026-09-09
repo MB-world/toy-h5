@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極簡 3D 玩具概念展廳</title>
-    <!-- 100% 沿用你完全可以成功顯示你自己 3D 模型的 4.3.1 版本 -->
+    <!-- 100% 沿用完全可成功顯示你自己 3D 模型的 4.3.1 版本 -->
     <script type="module" src="https://googleapis.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -13,10 +13,16 @@
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; z-index: 10; }
         video { width: 100%; height: 100%; object-fit: cover; }
         
-        /* 歡迎封面 (100% 繞過手機安全限制) */
+        /* ⏳ 全新優化：高端自轉 Loading 樣式 */
+        #scene-loading { background: #000; z-index: 110; }
+        .spinner { width: 45px; height: 45px; border: 3px solid rgba(255,255,255,0.08); border-radius: 50%; border-top-color: #fff; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        .loading-text { font-size: 13px; letter-spacing: 3px; color: #888; font-weight: 300; text-indent: 3px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 🚪 歡迎封面 (等 Loading 跑完才會絲滑浮現) */
         #scene-welcome { background: #000; z-index: 100; }
         .start-title { font-size: 20px; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-align: center; }
-        .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
+        .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; box-shadow: 0 0 15px rgba(255,255,255,0.1); transition: all 0.3s; }
 
         /* 🧭 抉擇頁 */
         #scene-choice { background: url('choice_bg.jpg') center/cover no-repeat; }
@@ -30,20 +36,28 @@
         .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
         .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
         .back-btn { font-size: 14px; color: #888; cursor: pointer; }
-
-        /* 🎬 結局影片專屬樣式，確保強制覆蓋在 3D 上方 */
-        #scene-outro { background: #000; z-index: 50; }
     </style>
 </head>
 <body>
 
-    <!-- 🌟 第一階段：點擊進入封面（移除了卡住 3D 的前導片，確保 100% 成功） -->
-    <div id="scene-welcome" class="scene active">
-        <h2 class="start-title">歡迎來到守護獸展廳</h2>
-        <button class="start-btn" onclick="startExperience()">點擊開啟體驗</button>
+    <!-- ⏳ 第一階段：高端自轉進度條 (一進網頁立刻執行) -->
+    <div id="scene-loading" class="scene active">
+        <div class="spinner"></div>
+        <div class="loading-text">LOADING...</div>
     </div>
 
-    <!-- 🧭 第二階段：命運抉擇頁 -->
+    <!-- 🚪 第二階段：歡迎封面 (自動接軌) -->
+    <div id="scene-welcome" class="scene">
+        <h2 class="start-title">歡迎來到守護獸展廳</h2>
+        <button class="start-btn" onclick="startExperience()">點擊開啟故事</button>
+    </div>
+
+    <!-- 🎬 第三階段：前導故事影片 -->
+    <div id="scene-intro" class="scene">
+        <video id="intro-video" src="intro.mp4" playsinline muted></video>
+    </div>
+
+    <!-- 🧭 第四階段：命運抉擇頁 -->
     <div id="scene-choice" class="scene">
         <h1 class="choice-title">請選擇你的守護獸</h1>
         <div class="btn-group">
@@ -52,29 +66,40 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第三階段：3D 旋轉互動 (完全保留你原本成功的 3D 模型連動代碼) -->
+    <!-- 🕹️ 第五階段：3D 旋轉互動 (保留你最成功的穩定結構) -->
     <div id="scene-3d" class="scene">
-        <!-- 💡 這裡開啟了 auto-play，當你點進來時，你原本在 C4D 裡烘焙好的機械動作就會自己不斷播放，且同時隨便大家手指 360 度轉動觀看！ -->
         <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
-            <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
+            <button class="switch-btn" onclick="triggerOutro()">啟動產品動態與結局</button>
             <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
         </div>
     </div>
 
-    <!-- 🎬 第四階段：結局特效影片 -->
+    <!-- 🎬 第六階段：結局特效影片 -->
     <div id="scene-outro" class="scene">
         <video id="outro-video" src="" playsinline muted></video>
     </div>
 
     <script>
+        const introVid = document.getElementById('intro-video');
         const outroVid = document.getElementById('outro-video');
         const viewer = document.getElementById('toy-viewer');
         let currentSelection = ''; 
 
+        // ⏱️ 網頁一打開，Loading 圓圈流暢自轉 1.5 秒，接著絲滑淡出、浮現歡迎按鈕
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                switchScene('scene-loading', 'scene-welcome');
+            }, 1500); // 1500 毫秒 = 1.5 秒，想要轉久一點可以改成 2000
+        });
+
         function startExperience() {
-            switchScene('scene-welcome', 'scene-choice');
+            switchScene('scene-welcome', 'scene-intro');
+            introVid.play();
         }
+
+        introVid.onended = function() { switchScene('scene-intro', 'scene-choice'); };
+        introVid.onclick = function() { introVid.pause(); switchScene('scene-intro', 'scene-choice'); };
 
         function enter3D(type) {
             currentSelection = type;
@@ -82,20 +107,14 @@
             switchScene('scene-choice', 'scene-3d');
         }
 
-        // 🛠️ 修正結局：強制重新載入影片源，並開啟置頂播放
         function triggerOutro() {
-            const videoSrc = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
-            outroVid.src = videoSrc;
+            outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
             outroVid.load(); // 強制重載
             switchScene('scene-3d', 'scene-outro');
             outroVid.play();
         }
 
-        outroVid.onended = function() {
-            outroVid.pause();
-            outroVid.src = "";
-            switchScene('scene-outro', 'scene-choice');
-        };
+        outroVid.onended = function() { switchScene('scene-outro', 'scene-choice'); };
 
         function goBackToChoice() {
             viewer.src = ''; 
