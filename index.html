@@ -18,18 +18,21 @@
         .start-title { font-size: 20px; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-align: center; }
         .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
 
-        /* 抉擇頁 */
+        /* ⏳ 前導故事影片專屬樣式 */
+        #scene-intro { background: #000; z-index: 40; }
+
+        /* 🧭 抉擇頁 */
         #scene-choice { background: url('choice_bg.jpg') center/cover no-repeat; }
         .choice-title { font-size: 24px; font-weight: 300; letter-spacing: 2px; margin-top: -30%; }
         .btn-group { display: flex; gap: 30px; margin-top: 80%; width: 80%; }
         .btn { flex: 1; padding: 15px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; backdrop-filter: blur(10px); text-align: center; }
         
-        /* 3D 互動頁 */
+        /* 🕹️ 3D 互動頁 */
         #scene-3d { background: #0a0a0a; }
         model-viewer { width: 100%; height: 68%; }
         .control-panel { width: 100%; height: 32%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
         
-        /* 手動玩具動態開關按鈕樣式 */
+        /* 手動玩具動態開關按鈕 */
         .toy-anim-btn { width: 70%; padding: 12px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 15px; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
         .toy-anim-btn.playing { background: #00ff88; color: #000; border-color: #00ff88; font-weight: bold; }
         
@@ -37,7 +40,7 @@
         .switch-btn { width: 70%; padding: 15px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
         .back-btn { font-size: 14px; color: #888; cursor: pointer; margin-top: 5px; }
 
-        /* 🎬 結局影片專屬樣式（確保強制置頂顯示） */
+        /* 🎬 結局影片專屬樣式 */
         #scene-outro { background: #000; z-index: 50; }
     </style>
 </head>
@@ -75,7 +78,6 @@
 
     <!-- 🎬 第五階段：結局特效影片 -->
     <div id="scene-outro" class="scene">
-        <!-- 核心優化：為影片打上 load() 命令，確保切換時手機會重新強製載入新視訊源 -->
         <video id="outro-video" src="" playsinline muted></video>
     </div>
 
@@ -87,12 +89,23 @@
         let currentSelection = ''; 
         let isToyMoving = false; 
 
+        // 🛠️ 核心修復：確保第一段前導影片會強制載入並順暢播放
         function startExperience() {
+            introVid.load(); // 強制手機瀏覽器解碼載入影片
             switchScene('scene-welcome', 'scene-intro');
-            introVid.play();
+            
+            // 延遲 50 毫秒播放，確保轉場動畫順暢
+            setTimeout(() => {
+                introVid.play().catch(error => {
+                    console.log("自動播放被攔截，點擊畫面即可觀看");
+                    // 萬一手機系統極端嚴格，點擊畫面也能播
+                    introVid.onclick = function() { introVid.play(); };
+                });
+            }, 50);
         }
 
         introVid.onended = function() { switchScene('scene-intro', 'scene-choice'); };
+        // 點擊前導影片可以手動跳過
         introVid.onclick = function() { introVid.pause(); switchScene('scene-intro', 'scene-choice'); };
 
         function enter3D(type) {
@@ -120,28 +133,18 @@
             }
         }
 
-        // 🛠️ 核心修復：精準切換結局影片
         function triggerOutro() {
-            viewer.pause(); // 先停掉 3D
-            
-            // 根據選擇設定對應的影片路徑
+            viewer.pause(); 
             const videoSrc = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
             outroVid.src = videoSrc;
-            
-            // 關鍵動作：強制手機瀏覽器重新讀取視訊軌道（iOS 必備）
-            outroVid.load(); 
-            
-            // 瞬間切換場景層
+            outroVid.load(); // 強制重載
             switchScene('scene-3d', 'scene-outro');
-            
-            // 播放結局影片
             outroVid.play();
         }
 
-        // 結局播放完畢後，流暢回到抉擇頁面
         outroVid.onended = function() { 
             outroVid.pause();
-            outroVid.src = ""; // 釋放視訊暫存
+            outroVid.src = ""; 
             switchScene('scene-outro', 'scene-choice'); 
         };
 
