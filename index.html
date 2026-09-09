@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極簡 3D 玩具概念展廳</title>
-    <!-- 100% 沿用你完全可以成功顯示 3D 的核心版本與代碼結構 -->
+    <!-- 100% 沿用你完全可以成功顯示你自己 3D 模型的 4.3.1 版本 -->
     <script type="module" src="https://googleapis.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -30,14 +30,16 @@
         .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
         .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
         .back-btn { font-size: 14px; color: #888; cursor: pointer; }
+
+        /* 🎬 結局影片專屬樣式，確保強制覆蓋在 3D 上方 */
+        #scene-outro { background: #000; z-index: 50; }
     </style>
 </head>
 <body>
 
-    <!-- 🌟 第一階段：點擊進入封面 -->
+    <!-- 🌟 第一階段：點擊進入封面（移除了卡住 3D 的前導片，確保 100% 成功） -->
     <div id="scene-welcome" class="scene active">
         <h2 class="start-title">歡迎來到守護獸展廳</h2>
-        <!-- 點擊直接跳過影片，確保 100% 能進入 3D -->
         <button class="start-btn" onclick="startExperience()">點擊開啟體驗</button>
     </div>
 
@@ -50,11 +52,12 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第三階段：3D 旋轉互動 (完全還原能動的 auto-play 版本) -->
+    <!-- 🕹️ 第三階段：3D 旋轉互動 (完全保留你原本成功的 3D 模型連動代碼) -->
     <div id="scene-3d" class="scene">
+        <!-- 💡 這裡開啟了 auto-play，當你點進來時，你原本在 C4D 裡烘焙好的機械動作就會自己不斷播放，且同時隨便大家手指 360 度轉動觀看！ -->
         <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
-            <button class="switch-btn" onclick="triggerOutro()">啟動產品動態與結局</button>
+            <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
             <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
         </div>
     </div>
@@ -69,25 +72,28 @@
         const viewer = document.getElementById('toy-viewer');
         let currentSelection = ''; 
 
-        // 點擊直接進到二選一抉擇頁
         function startExperience() {
             switchScene('scene-welcome', 'scene-choice');
         }
 
-        // 100% 複製你成功的模型載入代碼
         function enter3D(type) {
             currentSelection = type;
             viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
             switchScene('scene-choice', 'scene-3d');
         }
 
+        // 🛠️ 修正結局：強制重新載入影片源，並開啟置頂播放
         function triggerOutro() {
-            outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
+            const videoSrc = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
+            outroVid.src = videoSrc;
+            outroVid.load(); // 強制重載
             switchScene('scene-3d', 'scene-outro');
             outroVid.play();
         }
 
         outroVid.onended = function() {
+            outroVid.pause();
+            outroVid.src = "";
             switchScene('scene-outro', 'scene-choice');
         };
 
