@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極簡 3D 玩具概念展廳</title>
-    <!-- 100% 沿用你完全可以成功顯示 3D 模型的 4.3.1 版本 -->
     <script type="module" src="https://googleapis.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -13,44 +12,33 @@
         .active { display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; z-index: 10; }
         video { width: 100%; height: 100%; object-fit: cover; }
         
-        /* ⏳ 1. Loading 載入頁面樣式 */
-        #scene-loading { background: #000; z-index: 100; }
-        .spinner { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; margin-bottom: 20px; }
-        .loading-text { font-size: 14px; letter-spacing: 2px; color: #aaa; font-weight: 300; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        #scene-welcome { background: #000; z-index: 100; }
+        .start-title { font-size: 20px; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-align: center; }
+        .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
 
-        /* 🧭 2. 抉擇頁 */
         #scene-choice { background: url('choice_bg.jpg') center/cover no-repeat; }
         .choice-title { font-size: 24px; font-weight: 300; letter-spacing: 2px; margin-top: -30%; }
         .btn-group { display: flex; gap: 30px; margin-top: 80%; width: 80%; }
         .btn { flex: 1; padding: 15px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; backdrop-filter: blur(10px); text-align: center; }
         
-        /* 🕹️ 3. 3D 互動頁 */
         #scene-3d { background: #0a0a0a; }
-        model-viewer { width: 100%; height: 75%; } /* 完全還原成你最成功的 75% 高度比例 */
+        model-viewer { width: 100%; height: 75%; }
         .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
         .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
         .back-btn { font-size: 14px; color: #888; cursor: pointer; }
-
-        /* 🎬 4. 結局影片專屬樣式 */
-        #scene-outro { background: #000; z-index: 50; }
     </style>
 </head>
 <body>
 
-    <!-- ⏳ 第一階段：自動進度條 (Loading) -->
-    <div id="scene-loading" class="scene active">
-        <div class="spinner"></div>
-        <div class="loading-text">正在進入守護獸展廳...</div>
+    <div id="scene-welcome" class="scene active">
+        <h2 class="start-title">歡迎來到守護獸展廳</h2>
+        <button class="start-btn" onclick="startExperience()">點擊開啟故事</button>
     </div>
 
-    <!-- 🎬 第二階段：前導故事影片 -->
     <div id="scene-intro" class="scene">
-        <!-- 💡 加上 autoplay 和 muted 確保繞過系統限制自動播放 -->
         <video id="intro-video" src="intro.mp4" playsinline muted></video>
     </div>
 
-    <!-- 🧭 第三階段：命運抉擇頁 -->
     <div id="scene-choice" class="scene">
         <h1 class="choice-title">請選擇你的守護獸</h1>
         <div class="btn-group">
@@ -59,7 +47,6 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第四階段：3D 旋轉互動 (100% 複製你最成功的、內建 auto-play 的 3D 核心結構) -->
     <div id="scene-3d" class="scene">
         <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
@@ -68,7 +55,6 @@
         </div>
     </div>
 
-    <!-- 🎬 第五階段：結局特效影片 -->
     <div id="scene-outro" class="scene">
         <video id="outro-video" src="" playsinline muted></video>
     </div>
@@ -79,19 +65,14 @@
         const viewer = document.getElementById('toy-viewer');
         let currentSelection = ''; 
 
-        // ⚙️ 保險控制：一進網頁等 1.5 秒 Loading，接著立刻進影片並手動命令 play()
-        setTimeout(() => {
-            switchScene('scene-loading', 'scene-intro');
-            introVid.play().catch(e => {
-                // 萬一被手機極端防線攔截，顧客碰一下螢幕立刻播
-                document.body.addEventListener('click', () => { introVid.play(); }, { once: true });
-            });
-        }, 1500);
+        function startExperience() {
+            switchScene('scene-welcome', 'scene-intro');
+            introVid.play();
+        }
 
         introVid.onended = function() { switchScene('scene-intro', 'scene-choice'); };
         introVid.onclick = function() { introVid.pause(); switchScene('scene-intro', 'scene-choice'); };
 
-        // 100% 還原你完全成功的 3D 模型載入與連動邏輯
         function enter3D(type) {
             currentSelection = type;
             viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
@@ -100,16 +81,12 @@
 
         function triggerOutro() {
             outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
-            outroVid.load(); // 強制重載防止快取卡死
+            outroVid.load(); // 加上這行你最後測成功的結局修復指令
             switchScene('scene-3d', 'scene-outro');
             outroVid.play();
         }
 
-        outroVid.onended = function() {
-            outroVid.pause();
-            outroVid.src = "";
-            switchScene('scene-outro', 'scene-choice');
-        };
+        outroVid.onended = function() { switchScene('scene-outro', 'scene-choice'); };
 
         function goBackToChoice() {
             viewer.src = ''; 
