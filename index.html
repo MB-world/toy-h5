@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極簡 3D 玩具概念展廳</title>
     <!-- 維持你完全可用的 4.3.1 版本 -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js"></script>
+    <script type="module" src="https://googleapis.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: #fff; }
@@ -26,16 +26,19 @@
         
         /* 3D 互動頁 */
         #scene-3d { background: #0a0a0a; }
-        model-viewer { width: 100%; height: 68%; } /* 稍微縮小 3D 高度，留空間給雙按鈕 */
+        model-viewer { width: 100%; height: 68%; }
         .control-panel { width: 100%; height: 32%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
         
-        /* 新增：手動玩具動態開關按鈕樣式 */
+        /* 手動玩具動態開關按鈕樣式 */
         .toy-anim-btn { width: 70%; padding: 12px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 15px; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
         .toy-anim-btn.playing { background: #00ff88; color: #000; border-color: #00ff88; font-weight: bold; }
         
         /* 結局大片按鈕 */
         .switch-btn { width: 70%; padding: 15px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
         .back-btn { font-size: 14px; color: #888; cursor: pointer; margin-top: 5px; }
+
+        /* 🎬 結局影片專屬樣式（確保強制置頂顯示） */
+        #scene-outro { background: #000; z-index: 50; }
     </style>
 </head>
 <body>
@@ -60,14 +63,11 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第四階段：3D 旋轉互動 (移除原本的 auto-play 控制項) -->
+    <!-- 🕹️ 第四階段：3D 旋轉互動 -->
     <div id="scene-3d" class="scene">
         <model-viewer id="toy-viewer" camera-controls interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
-            
-            <!-- 🎮 關鍵修改：手動控制 3D 機械動態的獨立按鈕 -->
             <button id="anim-toggle-btn" class="toy-anim-btn" onclick="toggleToyAnimation()">檢查玩具運作動態：關閉中</button>
-            
             <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
             <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
         </div>
@@ -75,6 +75,7 @@
 
     <!-- 🎬 第五階段：結局特效影片 -->
     <div id="scene-outro" class="scene">
+        <!-- 核心優化：為影片打上 load() 命令，確保切換時手機會重新強製載入新視訊源 -->
         <video id="outro-video" src="" playsinline muted></video>
     </div>
 
@@ -84,7 +85,7 @@
         const viewer = document.getElementById('toy-viewer');
         const animBtn = document.getElementById('anim-toggle-btn');
         let currentSelection = ''; 
-        let isToyMoving = false; // 追蹤模型內動畫狀態
+        let isToyMoving = false; 
 
         function startExperience() {
             switchScene('scene-welcome', 'scene-intro');
@@ -98,7 +99,6 @@
             currentSelection = type;
             viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
             
-            // 每次重新進來，都重置按鈕狀態為靜態關閉
             isToyMoving = false;
             animBtn.innerText = "檢查玩具運作動態：關閉中";
             animBtn.classList.remove('playing');
@@ -106,29 +106,44 @@
             switchScene('scene-choice', 'scene-3d');
         }
 
-        // 🎮 新增：控制 3D 模型動作的邏輯
         function toggleToyAnimation() {
             if (!isToyMoving) {
-                viewer.play(); // 讓 3D 模型動起來
+                viewer.play(); 
                 animBtn.innerText = "檢查玩具運作動態：運作中 🟢";
                 animBtn.classList.add('playing');
                 isToyMoving = true;
             } else {
-                viewer.pause(); // 暫停 3D 模型動作
+                viewer.pause(); 
                 animBtn.innerText = "檢查玩具運作動態：關閉中";
                 animBtn.classList.remove('playing');
                 isToyMoving = false;
             }
         }
 
+        // 🛠️ 核心修復：精準切換結局影片
         function triggerOutro() {
-            viewer.pause(); // 播最後大片前先停掉 3D
-            outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
+            viewer.pause(); // 先停掉 3D
+            
+            // 根據選擇設定對應的影片路徑
+            const videoSrc = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
+            outroVid.src = videoSrc;
+            
+            // 關鍵動作：強制手機瀏覽器重新讀取視訊軌道（iOS 必備）
+            outroVid.load(); 
+            
+            // 瞬間切換場景層
             switchScene('scene-3d', 'scene-outro');
+            
+            // 播放結局影片
             outroVid.play();
         }
 
-        outroVid.onended = function() { switchScene('scene-outro', 'scene-choice'); };
+        // 結局播放完畢後，流暢回到抉擇頁面
+        outroVid.onended = function() { 
+            outroVid.pause();
+            outroVid.src = ""; // 釋放視訊暫存
+            switchScene('scene-outro', 'scene-choice'); 
+        };
 
         function goBackToChoice() {
             viewer.src = ''; 
