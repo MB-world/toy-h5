@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>極簡 3D 玩具概念展廳</title>
+    <!-- 引入 Google 官方 3D 播放器 -->
+    <script type="module" src="https://googleapis.com"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #fff; }
+        
+        /* 核心場景架構 */
+        .scene { position: absolute; width: 100%; height: 100%; display: none; opacity: 0; transition: opacity 0.4s ease; }
+        .active { display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; z-index: 10; }
+        
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* 抉擇頁樣式 */
+        #scene-choice { background: url('choice_bg.jpg') center/cover no-repeat; }
+        .choice-title { font-size: 24px; font-weight: 300; letter-spacing: 2px; margin-top: -30%; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .btn-group { display: flex; gap: 30px; margin-top: 80%; width: 80%; }
+        .btn { flex: 1; padding: 15px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; backdrop-filter: blur(10px); transition: all 0.2s; text-align: center; }
+        .btn:active { background: rgba(255,255,255,0.4); }
+        
+        /* 3D 互動頁樣式 */
+        #scene-3d { background: #0a0a0a; }
+        model-viewer { width: 100%; height: 75%; --poster-color: transparent; }
+        .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: linear-gradient(to top, #0a0a0a, transparent); }
+        .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
+        .switch-btn:active { transform: scale(0.98); }
+        .back-btn { font-size: 14px; color: #888; text-decoration: none; cursor: pointer; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <!-- ⏳ 第一階段：前導故事影片 -->
+    <div id="scene-intro" class="scene active">
+        <!-- playsinline 確保在 iPhone 上不會自動全螢幕播放 -->
+        <video id="intro-video" src="intro.mp4" autoplay playsinline muted></video>
+    </div>
+
+    <!-- 🧭 第二階段：命運抉擇頁 -->
+    <div id="scene-choice" class="scene">
+        <h1 class="choice-title">請選擇你的守護獸</h1>
+        <div class="btn-group">
+            <button class="btn" onclick="enter3D('tiger')">虎玩具</button>
+            <button class="btn" onclick="enter3D('snake')">蛇玩具</button>
+        </div>
+    </div>
+
+    <!-- 🕹️ 第三階段：3D 旋轉互動 -->
+    <div id="scene-3d" class="scene">
+        <!-- camera-controls 開啟手指旋轉，auto-play 讓模型自帶動畫循環播放 -->
+        <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1" camera-orbit="0deg 75deg 105%"></model-viewer>
+        
+        <div class="control-panel">
+            <button class="switch-btn" onclick="triggerOutro()">啟動產品動態與結局</button>
+            <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
+        </div>
+    </div>
+
+    <!-- 🎬 第四階段：結局特效影片 -->
+    <div id="scene-outro" class="scene">
+        <video id="outro-video" src="" playsinline muted></video>
+    </div>
+
+    <!-- ⚙️ 核心跳轉控制邏輯 -->
+    <script>
+        const introVid = document.getElementById('intro-video');
+        const outroVid = document.getElementById('outro-video');
+        const viewer = document.getElementById('toy-viewer');
+        let currentSelection = ''; 
+
+        // 1. 前導影片播完，自動跳到抉擇頁
+        introVid.onended = function() {
+            switchScene('scene-intro', 'scene-choice');
+        };
+
+        // 點擊前導影片也可以直接跳過
+        introVid.onclick = function() {
+            introVid.pause();
+            switchScene('scene-intro', 'scene-choice');
+        };
+
+        // 2. 選擇守護獸，載入對應 3D 模型
+        function enter3D(type) {
+            currentSelection = type;
+            if (type === 'tiger') {
+                viewer.src = 'tiger.glb'; 
+            } else {
+                viewer.src = 'snake.glb'; 
+            }
+            switchScene('scene-choice', 'scene-3d');
+        }
+
+        // 3. 點擊按鈕，障眼法切換到結局影片
+        function triggerOutro() {
+            if (currentSelection === 'tiger') {
+                outroVid.src = 'tiger_outro.mp4'; 
+            } else {
+                outroVid.src = 'snake_outro.mp4'; 
+            }
+            switchScene('scene-3d', 'scene-outro');
+            outroVid.play();
+        }
+
+        // 當結局影片播完，自動回到抉擇頁
+        outroVid.onended = function() {
+            switchScene('scene-outro', 'scene-choice');
+        };
+
+        // 返回按鈕邏輯
+        function goBackToChoice() {
+            viewer.src = ''; // 清空模型釋放手機記憶體
+            switchScene('scene-3d', 'scene-choice');
+        }
+
+        // 場景切換動畫控制
+        function switchScene(hideId, showId) {
+            const hideScene = document.getElementById(hideId);
+            const showScene = document.getElementById(showId);
+            
+            hideScene.style.opacity = '0';
+            setTimeout(() => {
+                hideScene.classList.remove('active');
+                showScene.classList.add('active');
+                // 延遲一下再給 opacity 1，才能觸發 CSS 淡入淡出動畫
+                setTimeout(() => { showScene.style.opacity = '1'; }, 50);
+            }, 400);
+        }
+    </script>
+</body>
+</html>
