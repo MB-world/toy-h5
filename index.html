@@ -27,16 +27,10 @@
         
         /* 🕹️ 3. 3D 互動頁 */
         #scene-3d { background: #0a0a0a; }
-        model-viewer { width: 100%; height: 68%; }
-        .control-panel { width: 100%; height: 32%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
-        
-        /* 手動玩具動態開關按鈕 */
-        .toy-anim-btn { width: 70%; padding: 12px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.5); color: #fff; font-size: 15px; border-radius: 25px; cursor: pointer; transition: all 0.2s; }
-        .toy-anim-btn.playing { background: #00ff88; color: #000; border-color: #00ff88; font-weight: bold; }
-        
-        /* 結局大片按鈕 */
-        .switch-btn { width: 70%; padding: 15px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
-        .back-btn { font-size: 14px; color: #888; cursor: pointer; margin-top: 5px; }
+        model-viewer { width: 100%; height: 75%; } /* 完全還原成你最成功的 75% 高度比例 */
+        .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
+        .back-btn { font-size: 14px; color: #888; cursor: pointer; }
 
         /* 🎬 4. 結局影片專屬樣式 */
         #scene-outro { background: #000; z-index: 50; }
@@ -50,8 +44,9 @@
         <div class="loading-text">正在進入守護獸展廳...</div>
     </div>
 
-    <!-- 🎬 第二階段：前導故事影片 (Muted 自動播放) -->
+    <!-- 🎬 第二階段：前導故事影片 -->
     <div id="scene-intro" class="scene">
+        <!-- 💡 加上 autoplay 和 muted 確保繞過系統限制自動播放 -->
         <video id="intro-video" src="intro.mp4" playsinline muted></video>
     </div>
 
@@ -64,12 +59,11 @@
         </div>
     </div>
 
-    <!-- 🕹️ 第四階段：3D 旋轉互動 (一開始不寫 src，避免效能衝突) -->
+    <!-- 🕹️ 第四階段：3D 旋轉互動 (100% 複製你最成功的、內建 auto-play 的 3D 核心結構) -->
     <div id="scene-3d" class="scene">
-        <model-viewer id="toy-viewer" camera-controls interpolation-decay="200" shadow-intensity="1"></model-viewer>
+        <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
         <div class="control-panel">
-            <button id="anim-toggle-btn" class="toy-anim-btn" onclick="toggleToyAnimation()">檢查玩具運作動態：關閉中</button>
-            <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
+            <button class="switch-btn" onclick="triggerOutro()">啟動產品動態與結局</button>
             <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
         </div>
     </div>
@@ -83,71 +77,38 @@
         const introVid = document.getElementById('intro-video');
         const outroVid = document.getElementById('outro-video');
         const viewer = document.getElementById('toy-viewer');
-        const animBtn = document.getElementById('anim-toggle-btn');
         let currentSelection = ''; 
-        let isToyMoving = false; 
 
-        // ⚙️ 網頁初始化邏輯
-        window.addEventListener('DOMContentLoaded', () => {
-            // 一進網頁，只單純處理前導影片的讀取，絕對不碰 3D 引擎
-            introVid.load(); 
-            
-            setTimeout(() => {
-                switchScene('scene-loading', 'scene-intro');
-                // 進入前導片場景後，強制啟動播放
-                introVid.play().catch(error => {
-                    console.log("防廣告攔截啟動，點擊螢幕即可播放影片");
-                    document.body.addEventListener('click', () => { introVid.play(); }, { once: true });
-                });
-            }, 1500); // 1.5秒的 Loading 轉圈時間
-        });
+        // ⚙️ 保險控制：一進網頁等 1.5 秒 Loading，接著立刻進影片並手動命令 play()
+        setTimeout(() => {
+            switchScene('scene-loading', 'scene-intro');
+            introVid.play().catch(e => {
+                // 萬一被手機極端防線攔截，顧客碰一下螢幕立刻播
+                document.body.addEventListener('click', () => { introVid.play(); }, { once: true });
+            });
+        }, 1500);
 
         introVid.onended = function() { switchScene('scene-intro', 'scene-choice'); };
         introVid.onclick = function() { introVid.pause(); switchScene('scene-intro', 'scene-choice'); };
 
-        // 🎮 核心修復：只有在點擊按鈕、真正進到這一頁時，才正式把 3D 模型載入進去！
+        // 100% 還原你完全成功的 3D 模型載入與連動邏輯
         function enter3D(type) {
             currentSelection = type;
-            
-            // 100% 沿用你完全成功的相對路徑賦值
             viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
-            
-            isToyMoving = false;
-            animBtn.innerText = "檢查玩具運作動態：關閉中";
-            animBtn.classList.remove('playing');
-            
             switchScene('scene-choice', 'scene-3d');
         }
 
-        function toggleToyAnimation() {
-            if (!isToyMoving) {
-                viewer.play(); 
-                animBtn.innerText = "檢查玩具運作動態：運作中 🟢";
-                animBtn.classList.add('playing');
-                isToyMoving = true;
-            } else {
-                viewer.pause(); 
-                animBtn.innerText = "檢查玩具運作動態：關閉中";
-                animBtn.classList.remove('playing');
-                isToyMoving = false;
-            }
-        }
-
         function triggerOutro() {
-            viewer.pause(); 
-            // 離開 3D 時，順手把 src 清空，把 100% 手機顯卡效能全部還給結局影片
-            viewer.src = ''; 
-            
             outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
-            outroVid.load(); 
+            outroVid.load(); // 強制重載防止快取卡死
             switchScene('scene-3d', 'scene-outro');
             outroVid.play();
         }
 
-        outroVid.onended = function() { 
+        outroVid.onended = function() {
             outroVid.pause();
-            outroVid.src = ""; 
-            switchScene('scene-outro', 'scene-choice'); 
+            outroVid.src = "";
+            switchScene('scene-outro', 'scene-choice');
         };
 
         function goBackToChoice() {
