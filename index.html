@@ -1,117 +1,303 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>極簡 3D 玩具概念展廳</title>
-    <!-- 100% 沿用你完全可以成功顯示你自己 3D 模型的 4.3.1 版本 -->
-    <script type="module" src="https://googleapis.com"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; color: #fff; }
-        .scene { position: absolute; width: 100%; height: 100%; display: none; opacity: 0; transition: opacity 0.4s ease; }
-        .active { display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; z-index: 10; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        
-        /* 歡迎封面 (100% 繞過手機安全限制) */
-        #scene-welcome { background: #000; z-index: 100; }
-        .start-title { font-size: 20px; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; text-align: center; }
-        .start-btn { padding: 15px 40px; background: none; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; letter-spacing: 2px; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>極簡 3D 玩具概念展廳</title>
+  
+  <!-- 載入 Google 官方的 3D 模型播放器元件 (維持 4.3.1 版本) -->
+  <script type="module" src="https://googleapis.com"></script>
+  
+  <style>
+    /* 全域重置與基礎樣式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-        /* 🧭 抉擇頁 */
-        #scene-choice { background: url('choice_bg.jpg') center/cover no-repeat; }
-        .choice-title { font-size: 24px; font-weight: 300; letter-spacing: 2px; margin-top: -30%; }
-        .btn-group { display: flex; gap: 30px; margin-top: 80%; width: 80%; }
-        .btn { flex: 1; padding: 15px 0; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 16px; border-radius: 30px; cursor: pointer; backdrop-filter: blur(10px); text-align: center; }
-        
-        /* 🕹️ 3D 互動頁 */
-        #scene-3d { background: #0a0a0a; }
-        model-viewer { width: 100%; height: 75%; }
-        .control-panel { width: 100%; height: 25%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-        .switch-btn { width: 70%; padding: 16px 0; background: #fff; border: none; color: #000; font-size: 16px; font-weight: bold; border-radius: 30px; cursor: pointer; }
-        .back-btn { font-size: 14px; color: #888; cursor: pointer; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: sans-serif;
+      color: #fff;
+    }
 
-        /* 🎬 結局影片專屬樣式，確保強制覆蓋在 3D 上方 */
-        #scene-outro { background: #000; z-index: 50; }
-    </style>
+    /* 展廳場景切換核心邏輯樣式 */
+    .scene {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .active {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 1;
+      z-index: 10;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* 🌟 第一階段：歡迎封面 */
+    #scene-welcome {
+      background: #000;
+      z-index: 100;
+    }
+
+    .start-title {
+      font-size: 20px;
+      font-weight: 300;
+      letter-spacing: 4px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .start-btn {
+      padding: 15px 40px;
+      background: none;
+      border: 2px solid #fff;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      letter-spacing: 2px;
+    }
+
+    /* 🧭 第三階段：命運抉擇頁 */
+    #scene-choice {
+      background: url('choice_bg.jpg') center/cover no-repeat;
+    }
+
+    .choice-title {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin-top: -30%;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 30px;
+      margin-top: 80%;
+      width: 80%;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 15px 0;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.4);
+      color: #fff;
+      font-size: 16px;
+      border-radius: 30px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    /* 🕹️ 第四階段：3D 互動頁 */
+    #scene-3d {
+      background: #0a0a0a;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 68%;
+    }
+
+    /* 底部按鈕控制區塊 */
+    .control-panel {
+      width: 100%;
+      height: 32%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* 手動玩具動態開關按鈕樣式 */
+    .toy-anim-btn {
+      width: 70%;
+      padding: 12px 0;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.5);
+      color: #fff;
+      font-size: 15px;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toy-anim-btn.playing {
+      background: #00ff88;
+      color: #000;
+      border-color: #00ff88;
+      font-weight: bold;
+    }
+
+    /* 大結局按鈕樣式 */
+    .switch-btn {
+      width: 70%;
+      padding: 15px 0;
+      background: #fff;
+      border: none;
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255,255,255,0.2);
+    }
+
+    .back-btn {
+      font-size: 14px;
+      color: #888;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- 🌟 第一階段：點擊進入封面（移除了卡住 3D 的前導片，確保 100% 成功） -->
-    <div id="scene-welcome" class="scene active">
-        <h2 class="start-title">歡迎來到守護獸展廳</h2>
-        <button class="start-btn" onclick="startExperience()">點擊開啟體驗</button>
+  <!-- 🌟 第一階段: 點擊進入封面 -->
+  <div id="scene-welcome" class="scene active">
+    <h2 class="start-title">歡迎來到守護獸展廳</h2>
+    <button class="start-btn" onclick="startExperience()">點擊開啟故事</button>
+  </div>
+
+  <!-- ⏳ 第二階段: 前導故事影片 -->
+  <div id="scene-intro" class="scene">
+    <video id="intro-video" src="intro.mp4" playsinline muted></video>
+  </div>
+
+  <!-- 🧭 第三階段: 命運抉擇頁 -->
+  <div id="scene-choice" class="scene">
+    <h1 class="choice-title">請選擇你的守護獸</h1>
+    <div class="btn-group">
+      <button class="btn" onclick="enter3D('tiger')">虎玩具</button>
+      <button class="btn" onclick="enter3D('snake')">蛇玩具</button>
     </div>
+  </div>
 
-    <!-- 🧭 第二階段：命運抉擇頁 -->
-    <div id="scene-choice" class="scene">
-        <h1 class="choice-title">請選擇你的守護獸</h1>
-        <div class="btn-group">
-            <button class="btn" onclick="enter3D('tiger')">虎玩具</button>
-            <button class="btn" onclick="enter3D('snake')">蛇玩具</button>
-        </div>
+  <!-- 🕹️ 第四階段: 3D 旋轉互動頁面 -->
+  <div id="scene-3d" class="scene">
+    <model-viewer id="toy-viewer" camera-controls interpolation-decay="200" shadow-intensity="1"></model-viewer>
+    <div class="control-panel">
+      <!-- 🎮 手動控制 3D 機械動態的獨立按鈕 -->
+      <button id="anim-toggle-btn" class="toy-anim-btn" onclick="toggleToyAnimation()">檢查玩具運作動態:關閉中</button>
+      <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
+      <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
     </div>
+  </div>
 
-    <!-- 🕹️ 第三階段：3D 旋轉互動 (完全保留你原本成功的 3D 模型連動代碼) -->
-    <div id="scene-3d" class="scene">
-        <!-- 💡 這裡開啟了 auto-play，當你點進來時，你原本在 C4D 裡烘焙好的機械動作就會自己不斷播放，且同時隨便大家手指 360 度轉動觀看！ -->
-        <model-viewer id="toy-viewer" camera-controls auto-play interpolation-decay="200" shadow-intensity="1"></model-viewer>
-        <div class="control-panel">
-            <button class="switch-btn" onclick="triggerOutro()">啟動產品故事大結局</button>
-            <div class="back-btn" onclick="goBackToChoice()">⬅ 返回重新選擇</div>
-        </div>
-    </div>
+  <!-- 🎬 第五階段: 結局特效影片 -->
+  <div id="scene-outro" class="scene">
+    <video id="outro-video" src="" playsinline muted></video>
+  </div>
 
-    <!-- 🎬 第四階段：結局特效影片 -->
-    <div id="scene-outro" class="scene">
-        <video id="outro-video" src="" playsinline muted></video>
-    </div>
+  <script>
+    // 取得 HTML 元素
+    const introVid = document.getElementById('intro-video');
+    const outroVid = document.getElementById('outro-video');
+    const viewer = document.getElementById('toy-viewer');
+    const animBtn = document.getElementById('anim-toggle-btn');
 
-    <script>
-        const outroVid = document.getElementById('outro-video');
-        const viewer = document.getElementById('toy-viewer');
-        let currentSelection = ''; 
+    let currentSelection = ''; // 紀錄玩家點選了虎還是蛇
+    let isToyMoving = false;    // 追蹤 3D 模型內部的機械動畫是否播放中
 
-        function startExperience() {
-            switchScene('scene-welcome', 'scene-choice');
-        }
+    // 【第一階段】點擊封面按鈕，進入前導故事影片
+    function startExperience() {
+      switchScene('scene-welcome', 'scene-intro');
+      introVid.play();
+    }
 
-        function enter3D(type) {
-            currentSelection = type;
-            viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
-            switchScene('scene-choice', 'scene-3d');
-        }
+    // 前導影片播完後，自動跳轉到抉擇頁面
+    introVid.onended = function() {
+      switchScene('scene-intro', 'scene-choice');
+    };
 
-        // 🛠️ 修正結局：強制重新載入影片源，並開啟置頂播放
-        function triggerOutro() {
-            const videoSrc = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
-            outroVid.src = videoSrc;
-            outroVid.load(); // 強制重載
-            switchScene('scene-3d', 'scene-outro');
-            outroVid.play();
-        }
+    // 點擊前導片影片本身也可以直接跳過影片
+    introVid.onclick = function() {
+      introVid.pause();
+      switchScene('scene-intro', 'scene-choice');
+    };
 
-        outroVid.onended = function() {
-            outroVid.pause();
-            outroVid.src = "";
-            switchScene('scene-outro', 'scene-choice');
-        };
+    // 【第三階段】選擇守護獸，並載入對應的 3D GLB 模型
+    function enter3D(type) {
+      currentSelection = type;
+      viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
+      
+      // 每次重新進入 3D 頁面時，重置按鈕狀態為「靜態關閉」
+      isToyMoving = false;
+      animBtn.innerText = "檢查玩具運作動態:關閉中";
+      animBtn.classList.remove('playing');
+      
+      switchScene('scene-choice', 'scene-3d');
+    }
 
-        function goBackToChoice() {
-            viewer.src = ''; 
-            switchScene('scene-3d', 'scene-choice');
-        }
+    // 【第四階段】🎮 控制 3D 模型內部自帶動畫的開關邏輯
+    function toggleToyAnimation() {
+      if (!isToyMoving) {
+        viewer.play(); // 啟動 3D 模型自帶的機械動畫
+        animBtn.innerText = "檢查玩具運作動態:運作中 🟢";
+        animBtn.classList.add('playing');
+        isToyMoving = true;
+      } else {
+        viewer.pause(); // 暫停 3D 模型動畫
+        animBtn.innerText = "檢查玩具運作動態:關閉中";
+        animBtn.classList.remove('playing');
+        isToyMoving = false;
+      }
+    }
 
-        function switchScene(hideId, showId) {
-            const hideScene = document.getElementById(hideId);
-            const showScene = document.getElementById(showId);
-            hideScene.style.opacity = '0';
-            setTimeout(() => {
-                hideScene.classList.remove('active');
-                showScene.classList.add('active');
-                setTimeout(() => { showScene.style.opacity = '1'; }, 50);
-            }, 400);
-        }
-    </script>
+    // 【第五階段】點擊啟動大結局
+    function triggerOutro() {
+      viewer.pause(); // 先暫停 3D 模型，避免背景持續運算消耗手機效能
+      outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
+      switchScene('scene-3d', 'scene-outro');
+      outroVid.play();
+    }
+
+    // 大結局影片播完，重回命運抉擇頁
+    outroVid.onended = function() {
+      switchScene('scene-outro', 'scene-choice');
+    };
+
+    // 返回按鈕邏輯
+    function goBackToChoice() {
+      viewer.src = ''; // 清空模型，節省資源
+      switchScene('scene-3d', 'scene-choice');
+    }
+
+    // 核心：控制場景淡入淡出切換的動畫函式
+    function switchScene(hideId, showId) {
+      const hideScene = document.getElementById(hideId);
+      const showScene = document.getElementById(showId);
+      
+      hideScene.style.opacity = '0';
+      
+      setTimeout(() => {
+        hideScene.classList.remove('active');
+        showScene.classList.add('active');
+        setTimeout(() => {
+          showScene.style.opacity = '1';
+        }, 50);
+      }, 400);
+    }
+  </script>
 </body>
 </html>
