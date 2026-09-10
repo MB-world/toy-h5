@@ -169,23 +169,6 @@
       cursor: pointer;
       margin-top: 5px;
     }
-
-    /* 新增：載入中遮罩，提示使用者模型正在準備中 */
-    #loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(10, 10, 10, 0.9);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 50;
-      font-size: 16px;
-      letter-spacing: 2px;
-      color: #888;
-    }
   </style>
 </head>
 <body>
@@ -212,9 +195,6 @@
 
   <!-- 🕹️ 第四階段: 3D 旋轉互動頁面 -->
   <div id="scene-3d" class="scene">
-    <!-- 載入提示遮罩 -->
-    <div id="loading-overlay">3D 展廳加載中...</div>
-    
     <model-viewer id="toy-viewer" camera-controls interpolation-decay="200" shadow-intensity="1"></model-viewer>
     <div class="control-panel">
       <!-- 🎮 手動控制 3D 機械動態的獨立按鈕 -->
@@ -235,18 +215,9 @@
     const outroVid = document.getElementById('outro-video');
     const viewer = document.getElementById('toy-viewer');
     const animBtn = document.getElementById('anim-toggle-btn');
-    const loadingOverlay = document.getElementById('loading-overlay');
 
     let currentSelection = ''; // 紀錄玩家點選了虎還是蛇
     let isToyMoving = false;    // 追蹤 3D 模型內部的機械動畫是否播放中
-
-    // 【監聽 3D 模型完全載入事件】核心安全機制
-    viewer.addEventListener('load', () => {
-      // 隱藏加載中提示
-      loadingOverlay.style.display = 'none';
-      // 確保 3D 模型在畫面完全就緒後，再順暢淡入展示廳場景
-      switchScene('scene-choice', 'scene-3d');
-    });
 
     // 【第一階段】點擊封面按鈕，進入前導故事影片
     function startExperience() {
@@ -265,12 +236,9 @@
       switchScene('scene-intro', 'scene-choice');
     };
 
-    // 【第三階段】選擇守護獸，並開始載入對應的 3D GLB 模型
+    // 【第三階段】選擇守護獸，並載入對應的 3D GLB 模型
     function enter3D(type) {
       currentSelection = type;
-      
-      // 顯示加載中畫面，並立即塞入新的模型路徑
-      loadingOverlay.style.display = 'flex';
       viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
       
       // 每次重新進入 3D 頁面時，重置按鈕狀態為「靜態關閉」
@@ -278,7 +246,7 @@
       animBtn.innerText = "檢查玩具運作動態:關閉中";
       animBtn.classList.remove('playing');
       
-      // 註：這裏移除了直接呼叫 switchScene 的動作，改由上方 viewer 的 'load' 事件觸發，確保不會因為過早切換而看不見 3D。
+      switchScene('scene-choice', 'scene-3d');
     }
 
     // 【第四階段】🎮 控制 3D 模型內部自帶動畫的開關邏輯
