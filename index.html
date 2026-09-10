@@ -28,22 +28,17 @@
       color: #fff;
     }
 
-    /* ==========================================================================
-       2. 展廳場景切換核心樣式 (關鍵修正：改用 visibility 確保 3D 引擎不被瀏覽器關閉)
-       ========================================================================== */
+    /* 展廳場景切換核心樣式 */
     .scene {
       position: absolute;
       width: 100%;
       height: 100%;
-      visibility: hidden;
-      pointer-events: none;
+      display: none;
       opacity: 0;
-      transition: opacity 0.4s ease, visibility 0.4s ease;
+      transition: opacity 0.4s ease;
     }
 
     .active {
-      visibility: visible;
-      pointer-events: auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -59,7 +54,7 @@
     }
 
     /* ==========================================================================
-       3. 各別場景與按鈕樣式
+       2. 各別場景與按鈕樣式
        ========================================================================== */
     /* 🌟 第一階段：歡迎封面 */
     #scene-welcome {
@@ -123,9 +118,15 @@
       background: #0a0a0a;
     }
 
-    model-viewer {
+    /* 用於動態塞入 3D 播放器的容器，確保高度固定為 68% */
+    #viewer-container {
       width: 100%;
       height: 68%;
+    }
+
+    model-viewer {
+      width: 100%;
+      height: 100%;
     }
 
     /* 底部按鈕控制面板 */
@@ -203,9 +204,10 @@
     </div>
   </div>
 
-  <!-- 🕹️ 第四階段：3D 旋轉互動 (關鍵修正：加入 loading="eager" 強迫網頁積極載入 3D) -->
+  <!-- 🕹️ 第四階段：3D 旋轉互動頁面 -->
   <div id="scene-3d" class="scene">
-    <model-viewer id="toy-viewer" camera-controls interpolation-decay="200" shadow-intensity="1" loading="eager"></model-viewer>
+    <!-- 🛠️ 關鍵修改：改用空白容器，等切換過來後才動態現場建立 3D 標籤，防止畫布尺寸被瀏覽器壓毀 -->
+    <div id="viewer-container"></div>
     
     <div class="control-panel">
       <!-- 🎮 手動控制 3D 機械動態的獨立按鈕 -->
@@ -221,14 +223,15 @@
   </div>
 
   <!-- ==========================================================================
-     4. JavaScript 互動邏輯
-     ========================================================================== */ -->
+     3. JavaScript 互動邏輯
+     ========================================================================== -->
   <script>
     const introVid = document.getElementById('intro-video');
     const outroVid = document.getElementById('outro-video');
-    const viewer = document.getElementById('toy-viewer');
+    const container = document.getElementById('viewer-container');
     const animBtn = document.getElementById('anim-toggle-btn');
     
+    let viewer = null;         // 用來動態存放 3D model-viewer 的變數
     let currentSelection = ''; // 紀錄目前選了老虎還是蛇
     let isToyMoving = false;    // 追蹤模型內動畫狀態
 
@@ -249,21 +252,41 @@
       switchScene('scene-intro', 'scene-choice');
     };
 
-    // 【抉擇階段】點擊按鈕，載入 3D 模型並切換場景
+    // 【抉擇階段】點擊按鈕，現場初始化並建立全新的 3D 播放器
     function enter3D(type) {
       currentSelection = type;
-      viewer.src = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
       
-      // 每次重新進來，都重置按鈕狀態為靜態關閉
+      // 每次點進來時，都先清空之前的舊容器，徹底釋放舊有的 WebGL 記憶體
+      container.innerHTML = '';
+      
+      // 🛠️ 核心修正：現場建立全新的 model-viewer 標籤，確保生成時寬高為正確的 100%
+      const modelSrc = type === 'tiger' ? 'tiger.glb' : 'snake.glb';
+      container.innerHTML = `
+        <model-viewer 
+          id="toy-viewer" 
+          src="${modelSrc}" 
+          camera-controls 
+          interpolation-decay="200" 
+          shadow-intensity="1" 
+          loading="eager">
+        </model-viewer>
+      `;
+      
+      // 重新綁定新生成的 3D 元件變數
+      viewer = document.getElementById('toy-viewer');
+      
+      // 重置動畫按鈕狀態為靜態關閉
       isToyMoving = false;
       animBtn.innerText = "檢查玩具運作動態:關閉中";
       animBtn.classList.remove('playing');
       
+      // 切換進入 3D 場景
       switchScene('scene-choice', 'scene-3d');
     }
 
     // 【3D 互動階段】🎮 手動控制 3D 模型內部機械動作的開關
     function toggleToyAnimation() {
+      if (!viewer) return;
       if (!isToyMoving) {
         viewer.play(); // 讓 3D 模型動起來
         animBtn.innerText = "檢查玩具運作動態:運作中 🟢";
@@ -279,7 +302,7 @@
 
     // 【大結局階段】點擊啟動大結局特效影片
     function triggerOutro() {
-      viewer.pause(); // 播放結局大片前先停掉背景的 3D 模型
+      if (viewer) viewer.pause(); // 播放結局大片前先停掉背景的 3D 模型
       outroVid.src = currentSelection === 'tiger' ? 'tiger_outro.mp4' : 'snake_outro.mp4';
       switchScene('scene-3d', 'scene-outro');
       outroVid.play();
@@ -290,9 +313,10 @@
       switchScene('scene-outro', 'scene-choice');
     };
 
-    // 【返回功能】點擊返回按鈕，清除資源並回抉擇頁
+    // 【返回功能】點擊返回按鈕，清空 3D 標籤並回抉擇頁
     function goBackToChoice() {
-      viewer.removeAttribute('src'); // 關鍵修正：用移除屬性代替空字串，防止部分瀏覽器 WebGL 當掉
+      container.innerHTML = ''; // 徹底清空 DOM，防止瀏覽器背景維持渲染導致下次卡死
+      viewer = null;
       switchScene('scene-3d', 'scene-choice');
     }
 
